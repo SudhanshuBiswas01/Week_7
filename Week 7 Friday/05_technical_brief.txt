@@ -1,0 +1,60 @@
+====================================================================
+  SHOPSENSE SENTIMENT CLASSIFIER – TECHNICAL BRIEF
+  Prepared for: Priya Menon, Head of Product
+====================================================================
+
+PART A – RECOMMENDATION
+---------------------------------------------
+DEPLOY: LR (TF-IDF, thresh=0.20)
+DECISION THRESHOLD: 0.20  (tuned for minimum cost)
+
+WHY THIS MODEL:
+  · Catches 100.0% of genuine negative reviews
+    (only 0.0% of complaints go undetected)
+  · Runs in 0.010 ms — well under the 20 ms SLA
+  · Projected daily cost: $6,800
+    vs next model: $15,000/day
+
+COST MODEL (FN = missed complaint @ $15 | FP = false alarm @ $2):
+  · Missed complaints/day : 0  → $0
+  · False alarms/day      : 3,400  → $6,800
+  · Total daily loss      : $6,800
+  · Annual projection     : $2,482,000
+
+WHAT THIS MODEL CANNOT GUARANTEE:
+  · Sarcasm or implicit negatives ('Oh great, broke on day 1 as expected')
+  · Novel Hinglish slang or regional variants emerging after training
+  · Emoji-only reviews outside the training vocabulary
+  · Sustained performance without monitoring and periodic retraining
+
+PART B – PRODUCTION MONITORING PLAN
+---------------------------------------------
+
+PRIMARY WEEKLY METRIC:  Negative-Class Recall
+  Why: A drop here = complaints silently ignored = customer churn.
+
+THRESHOLDS:
+  ⚠  Alert  : Recall (negative) < 70%   → Notify data science team
+  🔴 Retrain : Recall (negative) < 60% for 2 consecutive weeks
+
+SECONDARY METRICS TO MONITOR WEEKLY:
+  · Macro F1 < 0.65            → Investigate class balance collapse
+  · Predicted-negative% < 2%   → Possible majority-class collapse
+  · P95 inference latency > 15ms → Approaching SLA breach
+  · Daily cost increase > 20%   → Drift or data quality issue
+
+EARLY DRIFT DETECTION:
+  1. Canary injection: 50 known-negative reviews injected daily
+     → Alert if catch rate drops below 80%
+  2. Human audit: 5% random sample routed to agents every week
+     → Use agent labels as weekly ground truth
+  3. Shadow deployment: new model runs silently for 2 weeks before cutover
+  4. Per-category recall: monitored separately
+     → New categories (Furniture, Sports, Toys) tracked from day one
+
+FALLBACK PLAN (if model fails critically):
+  → Activate keyword-based rule filter immediately
+     (flags reviews containing: scam, fake, broken, defective, useless, fraud...)
+
+PREPARED BY: ShopSense AI/ML Team  |  DATE: 2026-04-12
+====================================================================
